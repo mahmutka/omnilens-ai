@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.API_KEY;
+// process.env yerine import.meta.env kullanıyoruz
+const apiKey = import.meta.env.VITE_API_KEY;
 
 if (!apiKey) {
   console.error("API_KEY is missing in environment variables.");
