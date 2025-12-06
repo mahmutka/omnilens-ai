@@ -1,7 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 
-// process.env yerine import.meta.env kullanıyoruz
-const apiKey = import.meta.env.VITE_API_KEY;
+// process.env YERİNE import.meta.env KULLANIYORUZ
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!API_KEY) {
+  console.error("API Key bulunamadı! .env dosyasını veya Vercel ayarlarını kontrol et.");
+}
 
 if (!apiKey) {
   console.error("API_KEY is missing in environment variables.");
