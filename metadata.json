@@ -1,0 +1,7 @@
+{
+  "name": "Object Insight AI",
+  "description": "Point your camera at any object to learn everything from its history to care tips.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
