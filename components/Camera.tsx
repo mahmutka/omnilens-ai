@@ -17,15 +17,25 @@ const Camera = forwardRef<CameraHandle, CameraProps>(({ onCameraReady }, ref) =>
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
-      // Set canvas dimensions to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // OPTIMIZATION: Resize image to reduce Token Usage and Cost
+      // Gemini doesn't need 4K images. 800px is sufficient for high accuracy.
+      const MAX_WIDTH = 800;
+      const scale = Math.min(1, MAX_WIDTH / video.videoWidth);
+      
+      const targetWidth = video.videoWidth * scale;
+      const targetHeight = video.videoHeight * scale;
+
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
       
       const ctx = canvas.getContext('2d');
       if (!ctx) return null;
       
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      return canvas.toDataURL('image/jpeg', 0.8);
+      // Draw resized image
+      ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+      
+      // Compress slightly (0.7 quality is good enough for AI)
+      return canvas.toDataURL('image/jpeg', 0.7);
     }
   }));
 
