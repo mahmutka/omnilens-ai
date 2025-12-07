@@ -1,11 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
-// process.env YERİNE import.meta.env KULLANIYORUZ
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
-if (!API_KEY) {
-  console.error("API Key bulunamadı! .env dosyasını veya Vercel ayarlarını kontrol et.");
-}
+const apiKey = process.env.API_KEY;
 
 if (!apiKey) {
   console.error("API_KEY is missing in environment variables.");
@@ -25,7 +20,19 @@ export const analyzeImage = async (
       model: 'gemini-3-pro-preview',
       config: {
         // System Instruction: Sets the model's persona and output language to English.
-        systemInstruction: "You are an expert AI assistant that analyzes objects in images in great detail. Always provide your responses in English. Present your output in a readable Markdown format (bold headings, bullet points). Give direct, clear, and information-rich answers to the user.",
+        // Critical: Includes logic to reject inapplicable prompts.
+        systemInstruction: `You are an expert AI assistant that analyzes objects in images in great detail. 
+        
+        RULES:
+        1. Always provide your responses in English.
+        2. Present your output in a readable Markdown format (bold headings, bullet points).
+        3. Give direct, clear, and information-rich answers to the user.
+        4. CRITICAL CHECK: Before generating a detailed response, determine if the User's Category/Prompt is applicable to the detected object.
+           - Example 1: If the prompt asks for "Next Move" (Game Strategy) but the image shows a fruit or a car (not a game), you MUST respond ONLY with: "Please select another category."
+           - Example 2: If the prompt asks for "Heal / Repair" but the object is a cloud or a sunset (cannot be fixed), you MUST respond ONLY with: "Please select another category."
+           - Example 3: If the prompt asks for "Recipes" but the object is a hammer, you MUST respond ONLY with: "Please select another category."
+        
+        If the prompt is valid for the object, proceed with the detailed analysis.`,
         // Creativity setting: 0.5 is balanced for factual yet engaging content.
         temperature: 0.5,
       },

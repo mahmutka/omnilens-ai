@@ -38,6 +38,20 @@ export const CATEGORIES: Category[] = [
     promptTemplate: "Identify the object in this image. Then, suggest creative games and activities that can be done with this object for children or adults."
   },
   {
+    id: 'next_move',
+    title: 'Next Move',
+    icon: '♟️',
+    description: 'Game Strategy',
+    promptTemplate: "Identify the game shown in the image (Chess, Backgammon, Poker, Board Game, etc.). Analyze the current board state or situation and suggest the best next move or winning strategy."
+  },
+  {
+    id: 'fix_heal',
+    title: 'Heal / Repair',
+    icon: '❤️‍🩹',
+    description: 'Fix or Cure',
+    promptTemplate: "Identify the subject in the image. If it is a LIVING thing (plant, animal, person), suggest remedies, healing tips, or care instructions for potential ailments. If it is an INANIMATE object (device, furniture, tool), explain how to repair, fix, or mend it."
+  },
+  {
     id: 'usage',
     title: 'How to Use',
     icon: '🛠️',
@@ -80,13 +94,6 @@ export const CATEGORIES: Category[] = [
     promptTemplate: "Identify the object in this image. Then, explain the best storage conditions to prevent damage or spoilage. How should it be preserved?"
   },
   {
-    id: 'etymology',
-    title: 'Etymology',
-    icon: 'abc',
-    description: 'Origin of name',
-    promptTemplate: "Identify the object in this image. Then, explain where its name comes from, its etymological origin, and interesting equivalents in different languages."
-  },
-  {
     id: 'buying',
     title: 'Buying Guide',
     icon: '💰',
@@ -99,12 +106,5 @@ export const CATEGORIES: Category[] = [
     icon: '🪵',
     description: 'What is it made of?',
     promptTemplate: "Identify the object in this image. Then, analyze what materials it is likely made of (type of plastic, metal, wood, etc.) and the properties of these materials."
-  },
-  {
-    id: 'recycle',
-    title: 'Sustainability',
-    icon: '♻️',
-    description: 'Recycling info',
-    promptTemplate: "Identify the object in this image. Then, explain if it is recyclable, its environmental impact, and how to dispose of it properly at the end of its life."
   }
 ];

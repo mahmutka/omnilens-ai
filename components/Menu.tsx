@@ -8,14 +8,17 @@ interface MenuProps {
 }
 
 const Menu: React.FC<MenuProps> = ({ onSelectCategory, isProcessing }) => {
-  const [offset, setOffset] = useState(0); // 0 to TotalPerimeter (in pixels)
+  const [offset, setOffset] = useState(0);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startPos = useRef({ x: 0, y: 0 });
   const lastOffset = useRef(0);
 
-  // Update dimensions on mount and resize
+  // Reduced button size by ~10% (from 88 to 80)
+  const BTN_SIZE = 80; 
+  const PADDING = 20;  // Safe distance from screen edge
+
   useLayoutEffect(() => {
     const updateDimensions = () => {
       setDimensions({
@@ -29,11 +32,11 @@ const Menu: React.FC<MenuProps> = ({ onSelectCategory, isProcessing }) => {
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
-  // Calculate Total Perimeter
-  // P = 2*W + 2*H
-  const totalPerimeter = (dimensions.width * 2) + (dimensions.height * 2);
+  // --- Perimeter Math (Safe Track) ---
+  const safeWidth = Math.max(0, dimensions.width - (2 * PADDING) - BTN_SIZE);
+  const safeHeight = Math.max(0, dimensions.height - (2 * PADDING) - BTN_SIZE);
+  const totalPerimeter = (safeWidth * 2) + (safeHeight * 2);
 
-  // Handle Dragging Logic
   useEffect(() => {
     const container = containerRef.current;
     if (!container || totalPerimeter === 0) return;
@@ -50,23 +53,12 @@ const Menu: React.FC<MenuProps> = ({ onSelectCategory, isProcessing }) => {
       const deltaX = clientX - startPos.current.x;
       const deltaY = clientY - startPos.current.y;
 
-      // Determine movement direction logic
-      // We want a natural "spin". 
-      // Top edge: dragging right (+)
-      // Right edge: dragging down (+)
-      // Bottom edge: dragging left (-) -> we invert logic for unified scalar
-      // Left edge: dragging up (-)
-      
-      // Simplified: Just use X+Y sum for a generic "spin" feel, or more complex vector logic.
-      // For mobile "swiping", keeping it simple (Drag Right/Down = Forward) works best intuitively.
+      // Dragging Right or Down = Positive (Clockwise)
       const movement = deltaX + deltaY; 
       
-      // Sensitivity factor
-      const sensitivity = 1.5; // Pixels 1:1ish
+      let newOffset = lastOffset.current + movement;
       
-      let newOffset = lastOffset.current + (movement * sensitivity);
-      
-      // Normalize to 0 - totalPerimeter
+      // Loop logic
       newOffset = newOffset % totalPerimeter;
       if (newOffset < 0) newOffset += totalPerimeter;
 
@@ -77,11 +69,10 @@ const Menu: React.FC<MenuProps> = ({ onSelectCategory, isProcessing }) => {
       isDragging.current = false;
     };
 
-    // Touch Events
+    // Events
     const onTouchStart = (e: TouchEvent) => handleStart(e.touches[0].clientX, e.touches[0].clientY);
     const onTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientX, e.touches[0].clientY);
     
-    // Mouse Events
     const onMouseDown = (e: MouseEvent) => handleStart(e.clientX, e.clientY);
     const onMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
 
@@ -102,59 +93,28 @@ const Menu: React.FC<MenuProps> = ({ onSelectCategory, isProcessing }) => {
     };
   }, [offset, totalPerimeter]);
 
-  // Calculate absolute X,Y based on distance along perimeter
-  const getPositionByDistance = (distance: number) => {
-    const { width, height } = dimensions;
-    const padding = 12; // Wall padding
-    const buttonSize = 72; // Button size reference
-    const halfBtn = buttonSize / 2;
-
+  const getPositionByDistance = (dist: number) => {
     let top = 0;
     let left = 0;
 
-    // Defined Edges by distance:
-    // 0 -> W : TOP Edge (moving left to right)
-    // W -> W+H : RIGHT Edge (moving top to bottom)
-    // W+H -> 2W+H : BOTTOM Edge (moving right to left)
-    // 2W+H -> 2W+2H : LEFT Edge (moving bottom to top)
-
-    if (distance < width) {
+    if (dist < safeWidth) {
       // TOP EDGE
-      left = distance;
-      top = padding;
-      
-      // Constrain corners
-      if (left < padding) left = padding;
-      if (left > width - buttonSize - padding) left = width - buttonSize - padding;
-
-    } else if (distance < width + height) {
+      left = PADDING + dist;
+      top = PADDING;
+    } else if (dist < safeWidth + safeHeight) {
       // RIGHT EDGE
-      const localDist = distance - width;
-      left = width - buttonSize - padding;
-      top = localDist;
-
-      if (top < padding) top = padding;
-      if (top > height - buttonSize - padding) top = height - buttonSize - padding;
-
-    } else if (distance < (width * 2) + height) {
+      left = dimensions.width - PADDING - BTN_SIZE;
+      top = PADDING + (dist - safeWidth);
+    } else if (dist < (safeWidth * 2) + safeHeight) {
       // BOTTOM EDGE
-      const localDist = distance - (width + height);
-      // Moving right to left means: width -> 0
-      left = width - localDist - buttonSize; 
-      top = height - buttonSize - padding;
-
-      if (left < padding) left = padding;
-      if (left > width - buttonSize - padding) left = width - buttonSize - padding;
-
+      const bottomDist = dist - (safeWidth + safeHeight);
+      left = (dimensions.width - PADDING - BTN_SIZE) - bottomDist;
+      top = dimensions.height - PADDING - BTN_SIZE;
     } else {
       // LEFT EDGE
-      const localDist = distance - ((width * 2) + height);
-      // Moving bottom to top means: height -> 0
-      left = padding;
-      top = height - localDist - buttonSize;
-
-      if (top < padding) top = padding;
-      if (top > height - buttonSize - padding) top = height - buttonSize - padding;
+      const leftDist = dist - ((safeWidth * 2) + safeHeight);
+      left = PADDING;
+      top = (dimensions.height - PADDING - BTN_SIZE) - leftDist;
     }
 
     return { top: `${top}px`, left: `${left}px` };
@@ -162,8 +122,6 @@ const Menu: React.FC<MenuProps> = ({ onSelectCategory, isProcessing }) => {
 
   if (totalPerimeter === 0) return null;
 
-  // Calculate gap based on Pixel Distance, not Percentage
-  // This ensures equal spacing regardless of screen aspect ratio
   const itemGapPixels = totalPerimeter / CATEGORIES.length;
 
   return (
@@ -172,11 +130,13 @@ const Menu: React.FC<MenuProps> = ({ onSelectCategory, isProcessing }) => {
       className="absolute inset-0 z-20 cursor-grab active:cursor-grabbing overflow-hidden"
     >
       {CATEGORIES.map((cat, index) => {
-        // Calculate exact pixel position along the loop
         let itemDistance = (offset + (index * itemGapPixels)) % totalPerimeter;
         if (itemDistance < 0) itemDistance += totalPerimeter;
 
         const style = getPositionByDistance(itemDistance);
+        
+        // Unique ID for the SVG text path
+        const curveId = `curve_${cat.id}`;
 
         return (
           <button
@@ -189,30 +149,51 @@ const Menu: React.FC<MenuProps> = ({ onSelectCategory, isProcessing }) => {
               position: 'absolute',
               top: style.top,
               left: style.left,
-              width: '72px',
-              height: '72px',
+              width: `${BTN_SIZE}px`,
+              height: `${BTN_SIZE}px`,
             }}
             disabled={isProcessing}
             className={`
-              flex flex-col items-center justify-center
-              rounded-2xl
-              backdrop-blur-md bg-black/20 border border-white/10 shadow-lg
+              relative
+              rounded-full
+              backdrop-blur-md bg-black/30 border border-white/20 shadow-xl
               transition-transform duration-100 ease-out
-              ${isProcessing ? 'opacity-40 grayscale' : 'active:scale-95 active:bg-white/10'}
+              flex items-center justify-center
+              ${isProcessing ? 'opacity-40 grayscale' : 'active:scale-95 active:bg-white/20'}
             `}
           >
-            <span className="text-2xl mb-0.5 drop-shadow-md filter select-none">{cat.icon}</span>
-            <span className="text-[8px] font-medium text-center text-white/90 leading-none px-1 drop-shadow-sm select-none truncate w-full">
-              {cat.title}
-            </span>
+             {/* Center Icon */}
+            <span className="text-3xl mb-2 drop-shadow-md select-none z-10">{cat.icon}</span>
+
+            {/* SVG Text Curved Around Bottom */}
+            <svg 
+              className="absolute inset-0 w-full h-full pointer-events-none select-none"
+              viewBox="0 0 100 100"
+            >
+              <defs>
+                {/* 
+                  Path Definition:
+                  A semi-circle arc at the bottom.
+                  Starts at 10,50 (Left Middle).
+                  Sweeps down to 90,50 (Right Middle).
+                  Radius 40 (Fit inside 100x100).
+                  This creates a "Smile" shape for the text to sit IN.
+                */}
+                <path 
+                  id={curveId} 
+                  d="M 10,50 A 40,40 0 0,0 90,50"
+                  fill="none"
+                />
+              </defs>
+              <text fontSize="10.5" fontWeight="bold" fill="white" textAnchor="middle" style={{ filter: 'drop-shadow(1px 1px 1px black)' }}>
+                <textPath href={`#${curveId}`} startOffset="50%">
+                  {cat.title}
+                </textPath>
+              </text>
+            </svg>
           </button>
         );
       })}
-      
-      {/* Visual Guide Center */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-        <div className="w-48 h-48 border border-dashed border-white/10 rounded-full animate-[spin_20s_linear_infinite]" />
-      </div>
     </div>
   );
 };
